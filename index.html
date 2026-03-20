@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BADideas.fund Hackathon Frame</title>
+  <style>
+    html, body {
+      font-family: 'Inter', sans-serif;
+      background: #ffffff;
+      color: #000000;
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      overflow-x: hidden;
+    }
+
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      min-height: 100vh;
+    }
+
+    .left-panel, .right-panel {
+      padding: 2em;
+      box-sizing: border-box;
+    }
+
+    .left-panel {
+      flex: 2;
+      min-width: 300px;
+    }
+
+    .right-panel {
+      flex: 3;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      background: #f8f8f8;
+    }
+
+    h1, p, label, input {
+      text-align: left;
+      display: block;
+      width: 100%;
+    }
+
+    canvas {
+      width: 100%;
+      max-width: 100%;
+      height: auto;
+      border: 1px solid #ccc;
+      background: #fff;
+    }
+
+    input[type="file"] {
+      margin: 1em 0;
+    }
+
+    #zoomSlider {
+      width: 100%;
+      accent-color: #097fe8;
+      margin: 1em 0;
+    }
+
+    .primary-btn, .secondary-btn {
+      font-family: 'Inter', sans-serif;
+      font-size: 20px;
+      font-weight: 500;
+      padding: 0.55em 1.6em;
+      border-radius: 40px;
+      margin: 0.4em 0;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .primary-btn {
+      background-color: #191918;
+      color: white;
+      border: none;
+    }
+
+    .primary-btn:hover {
+      background-color: #535352;
+    }
+
+    .secondary-btn {
+      background-color: #ffffff;
+      color: #191918;
+      border: 2px solid #191918;
+    }
+
+    .secondary-btn:hover {
+      background-color: #F6F5F4;
+    }
+
+    .disclaimer {
+      margin-top: 2em;
+      font-size: 0.85em;
+      color: #444;
+    }
+
+    @media (max-width: 900px) {
+      .container {
+        flex-direction: column;
+      }
+
+      .left-panel, .right-panel {
+        width: 100%;
+        padding: 1.5em;
+      }
+
+      .left-panel {
+        order: 1;
+      }
+
+      .right-panel {
+        order: 2;
+      }
+
+      .zoom-wrapper {
+        order: 3;
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="left-panel">
+    <h1>Tell the world you just applied to the BAD Twelve Hour Hackathon</h1>
+    <p>
+      Upload your photo, add our frame, and challenge others to apply too.
+      Need inspo? Find a ready-to-use caption
+      <a href="https://luma.com/q7mgdm5x" target="_parent">here</a>.
+    </p>
+
+    <input type="file" accept="image/*" id="upload" />
+    <button class="primary-btn" onclick="downloadImage()">Download</button>
+    <button class="secondary-btn" onclick="resetCanvas()">Start Over</button>
+
+    <div class="zoom-wrapper">
+      <label for="zoomSlider">Zoom:</label>
+      <input type="range" id="zoomSlider" min="0.5" max="2.5" step="0.01" value="1" />
+    </div>
+
+    <div class="disclaimer">
+      No photos are uploaded or stored — everything runs securely in your browser.
+    </div>
+  </div>
+
+  <div class="right-panel">
+    <canvas id="canvas" width="1080" height="1080"></canvas>
+  </div>
+</div>
+
+<script>
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const upload = document.getElementById('upload');
+  const zoomSlider = document.getElementById('zoomSlider');
+
+  // Put your hackathon frame image in the same folder as this HTML and keep the name "frame.png"
+  const frame = new Image();
+  frame.src = 'frame.png';
+
+  let userImg = null;
+  let zoom = 1;
+  let offsetX = 0;
+  let offsetY = 0;
+  let isDragging = false;
+  let startX = 0, startY = 0;
+
+  frame.onload = () => draw();
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (userImg) {
+      const iw = userImg.width * zoom;
+      const ih = userImg.height * zoom;
+      const ix = (canvas.width - iw) / 2 + offsetX;
+      const iy = (canvas.height - ih) / 2 + offsetY;
+      ctx.drawImage(userImg, ix, iy, iw, ih);
+    }
+
+    ctx.drawImage(frame, 0, 0, canvas.width, canvas.height);
+  }
+
+  upload.addEventListener('change', function(e) {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(event) {
+      const img = new Image();
+      img.onload = function() {
+        userImg = img;
+        zoom = 1;
+        offsetX = 0;
+        offsetY = 0;
+        zoomSlider.value = 1;
+        draw();
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  zoomSlider.addEventListener('input', function () {
+    zoom = parseFloat(this.value);
+    draw();
+  });
+
+  canvas.addEventListener('mousedown', function(e) {
+    isDragging = true;
+    startX = e.clientX;
+    startY = e.clientY;
+  });
+
+  canvas.addEventListener('mousemove', function(e) {
+    if (!isDragging) return;
+    offsetX += e.clientX - startX;
+    offsetY += e.clientY - startY;
+    startX = e.clientX;
+    startY = e.clientY;
+    draw();
+  });
+
+  canvas.addEventListener('mouseup', () => isDragging = false);
+  canvas.addEventListener('mouseleave', () => isDragging = false);
+
+  canvas.addEventListener('touchstart', function(e) {
+    isDragging = true;
+    const touch = e.touches[0];
+    startX = touch.clientX;
+    startY = touch.clientY;
+  });
+
+  canvas.addEventListener('touchmove', function(e) {
+    if (!isDragging) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    const x = touch.clientX;
+    const y = touch.clientY;
+    offsetX += x - startX;
+    offsetY += y - startY;
+    startX = x;
+    startY = y;
+    draw();
+  }, { passive: false });
+
+  canvas.addEventListener('touchend', () => isDragging = false);
+
+  function downloadImage() {
+    if (!userImg) {
+      alert("Please upload an image first.");
+      return;
+    }
+    canvas.toBlob(function(blob) {
+      const link = document.createElement('a');
+      link.download = 'badideas-hackathon-frame.png';
+      link.href = URL.createObjectURL(blob);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+    }, 'image/png');
+  }
+
+  function resetCanvas() {
+    upload.value = null;
+    userImg = null;
+    zoom = 1;
+    offsetX = 0;
+    offsetY = 0;
+    zoomSlider.value = 1;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    draw();
+  }
+</script>
+
+</body>
+</html>
